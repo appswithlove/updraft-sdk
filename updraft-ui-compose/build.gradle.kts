@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.loco)
@@ -28,9 +28,15 @@ Loco {
 }
 
 kotlin {
-    androidTarget {
+    androidLibrary {
+        namespace = "com.appswithlove.updraft.ui"
+        compileSdk = 36
+        minSdk = 23
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
+        }
+        androidResources {
+            enable = true
         }
     }
 
@@ -64,18 +70,6 @@ kotlin {
 compose.resources {
     packageOfResClass = "com.appswithlove.updraft.ui.resources"
     publicResClass = false
-}
-
-android {
-    namespace = "com.appswithlove.updraft.ui"
-    compileSdk = 36
-    defaultConfig {
-        minSdk = 23
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
 }
 
 mavenPublishing {
