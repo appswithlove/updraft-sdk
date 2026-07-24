@@ -1,5 +1,5 @@
 [versions]
-gradle = "8.13.0"
+agp = "8.13.0"
 kotlin = "2.2.21"
 appcompat = "1.7.1"
 constraintlayout = "2.2.1"
@@ -51,8 +51,8 @@ turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycleProcess" }
 
 [plugins]
-android-application = { id = "com.android.application", version.ref = "gradle" }
-android-library = { id = "com.android.library", version.ref = "gradle" }
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
