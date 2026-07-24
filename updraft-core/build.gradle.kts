@@ -16,6 +16,7 @@ kotlin {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
         }
+        withHostTestBuilder {}
     }
 
     val xcf = XCFramework("UpdraftCore")
