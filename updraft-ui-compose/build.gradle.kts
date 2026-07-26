@@ -1,4 +1,3 @@
-import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -10,14 +9,8 @@ plugins {
     alias(libs.plugins.maven.publish)
 }
 
-val localProperties = Properties().apply {
-    val file = rootProject.file("local.properties")
-    if (file.exists()) file.inputStream().use { load(it) }
-}
-
 Loco {
     config {
-        apiKey = localProperties.getProperty("updraft.locoApiKey").orEmpty()
         lang = listOf("en", "de")
         defLang = "en"
         resDir = "$projectDir/src/commonMain/composeResources"
