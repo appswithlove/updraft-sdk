@@ -34,16 +34,9 @@ kotlin {
         withHostTestBuilder {}
     }
 
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64(),
-        iosX64(),
-    ).forEach { target ->
-        target.binaries.framework {
-            baseName = "UpdraftUI"
-            isStatic = true
-        }
-    }
+    iosArm64()
+    iosSimulatorArm64()
+    iosX64()
 
     sourceSets {
         commonMain.dependencies {

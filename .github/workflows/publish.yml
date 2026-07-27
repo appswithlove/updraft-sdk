@@ -46,8 +46,11 @@ jobs:
             exit 1
           fi
 
-      - name: Verify (build + all tests, both platforms)
-        run: ./gradlew build iosSimulatorArm64Test
+      # Explicit task list: root `build` on macOS links the sample app's
+      # Compose-heavy iOS frameworks, which OOMs the 7GB runner. Verify only
+      # what gets published (+ the core XCFramework used by pure-iOS apps).
+      - name: Verify (published modules, both platforms)
+        run: ./gradlew :updraft-sdk:build :updraft-core:testDebugUnitTest :updraft-ui-compose:testDebugUnitTest :updraft-core:iosSimulatorArm64Test :updraft-ui-compose:iosSimulatorArm64Test :updraft-core:assembleUpdraftCoreXCFramework --max-workers=2
 
       - name: Publish to Maven Central Portal
         run: ./gradlew publishAllPublicationsToMavenCentralRepository --no-configuration-cache
