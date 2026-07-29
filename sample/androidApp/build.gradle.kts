@@ -3,11 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
-    // TODO(#16): com.appswithlove.updraft 2.3.0 is incompatible with AGP 9 —
-    // casts ApplicationExtension to the removed legacy AppExtension
-    // ("ApplicationExtensionImpl$AgpDecorated_Decorated cannot be cast to AppExtension").
-    // Re-enable once the plugin ships AGP 9 support.
-    // alias(libs.plugins.updraft)
+    alias(libs.plugins.updraft)
 }
 
 android {
@@ -64,7 +60,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
 }
 
-// val updraftUploadUrl: String = findProperty("updraft_uploadUrl") as? String ?: ""
-// updraft {
-//     urls = mapOf("Release" to listOf(updraftUploadUrl))
-// }
+val updraftUploadUrl: String = findProperty("updraft_uploadUrl") as? String ?: ""
+updraft {
+    urls = mapOf("Release" to listOf(updraftUploadUrl))
+}
