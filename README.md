@@ -50,7 +50,7 @@ You always need:
 ```toml
 # libs.versions.toml
 [versions]
-updraft = "2.0.0"
+updraft = "2.0.1"
 
 [libraries]
 updraft-sdk = { module = "com.appswithlove.updraft:updraft-sdk", version.ref = "updraft" }
