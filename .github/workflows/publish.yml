@@ -50,7 +50,7 @@ jobs:
       # Compose-heavy iOS frameworks, which OOMs the 7GB runner. Verify only
       # what gets published (+ the core XCFramework used by pure-iOS apps).
       - name: Verify (published modules, both platforms)
-        run: ./gradlew :updraft-sdk:build :updraft-core:testDebugUnitTest :updraft-ui-compose:testDebugUnitTest :updraft-core:iosSimulatorArm64Test :updraft-ui-compose:iosSimulatorArm64Test :updraft-core:assembleUpdraftCoreXCFramework --max-workers=2
+        run: ./gradlew :updraft-sdk:build :updraft-core:testAndroidHostTest :updraft-ui-compose:testAndroidHostTest :updraft-core:iosSimulatorArm64Test :updraft-ui-compose:iosSimulatorArm64Test :updraft-core:assembleUpdraftCoreXCFramework --max-workers=2
 
       - name: Publish to Maven Central Portal
         run: ./gradlew publishAllPublicationsToMavenCentralRepository --no-configuration-cache

@@ -1,23 +1,22 @@
 [versions]
-gradle = "8.13.0"
+agp = "9.3.1"
 kotlin = "2.2.21"
 appcompat = "1.7.1"
 constraintlayout = "2.2.1"
 coreKtx = "1.17.0"
-dokka = "2.1.0"
-androidxStartup = "1.1.1"
+dokka = "2.2.0"
+androidxStartup = "1.2.0"
 activityCompose = "1.12.0"
 composeUi = "1.9.4"
 kotlinxSerializationJson = "1.9.0"
 lifecycleExtensions = "2.2.0"
 lifecycleViewmodelKtx = "2.9.4"
 converterKotlinxSerialization = "3.0.0"
-loco = "0.4.1"
+loco = "1.2.0"
 material = "1.13.0"
-updraft = "2.3.0"
-maven-publish = "0.34.0"
-coveralls = "2.4.0"
-composeMultiplatform = "1.9.3"
+updraft = "3.0.0"
+maven-publish = "0.37.0"
+composeMultiplatform = "1.10.3"
 ktor = "3.3.3"
 coroutines = "1.10.2"
 turbine = "1.2.1"
@@ -51,15 +50,14 @@ turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycleProcess" }
 
 [plugins]
-android-application = { id = "com.android.application", version.ref = "gradle" }
-android-library = { id = "com.android.library", version.ref = "gradle" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
-coveralls = { id = "com.github.kt3k.coveralls", version.ref = "coveralls" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 updraft = { id = "com.appswithlove.updraft", version.ref = "updraft" }
 loco = { id = "com.appswithlove.loco", version.ref = "loco" }

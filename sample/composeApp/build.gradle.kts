@@ -2,11 +2,10 @@ import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
-    alias(libs.plugins.updraft)
 }
 
 val localProperties = Properties().apply {
@@ -41,7 +40,10 @@ val generateSampleKeys = tasks.register("generateSampleKeys") {
 }
 
 kotlin {
-    androidTarget {
+    androidLibrary {
+        namespace = "com.appswithlove.updraftsdk.shared"
+        compileSdk = 36
+        minSdk = 23
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
         }
@@ -70,52 +72,5 @@ kotlin {
             implementation(compose.material3)
             implementation(compose.ui)
         }
-        androidMain.dependencies {
-            implementation(project(":updraft-sdk"))
-            implementation(libs.androidx.activity.compose)
-        }
     }
-}
-
-android {
-    namespace = "com.appswithlove.updraftsdk"
-    compileSdk = 36
-
-    defaultConfig {
-        applicationId = "com.appswithlove.updraftsdk"
-        minSdk = 23
-        targetSdk = 36
-        versionCode = 6
-        versionName = "1.5"
-    }
-
-    signingConfigs {
-        create("release") {
-            storeFile = file("updraft_test.jks")
-            storePassword = "appswithlove"
-            keyAlias = "release"
-            keyPassword = "appswithlove"
-        }
-    }
-
-    buildTypes {
-        release {
-            signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-}
-
-val updraftUploadUrl: String = findProperty("updraft_uploadUrl") as? String ?: ""
-updraft {
-    urls = mapOf("Release" to listOf(updraftUploadUrl))
 }
