@@ -256,6 +256,8 @@ Version 2.0.0 rebuilds the SDK on Kotlin Multiplatform. `updraft-sdk` stays a dr
 
 Use the `sample` project for testing. `./gradlew publishToMavenLocal` installs the current version to Maven Local. Sample keys go into `local.properties` (`updraft.appKey.android`, `updraft.appKey.ios`, `updraft.sdkKey`).
 
+Before every release, run the Android sample on a device (API 26+), tap "Give feedback" or shake, and confirm the feedback sheet opens with a screenshot. The sample renders a hardware bitmap on purpose: it reproduces the screenshot crash that shipped in 1.1.0 and 2.0.0 (#25).
+
 ### Strings (Loco)
 
 UI strings live in `updraft-ui-compose/src/commonMain/composeResources/values*/strings.xml` (en, de) and are shared by both platforms. They are managed on [Loco](https://localise.biz). `./gradlew :updraft-ui-compose:locoFetch` re-fetches them and **overwrites local edits**, so change strings in Loco first, then pull. `locoPush` pushes local strings to Loco and needs a full-access key. Both tasks need `locoApiKey=<key>` in `local.properties`. Plurals live in `plurals.xml`, which Loco does not touch.

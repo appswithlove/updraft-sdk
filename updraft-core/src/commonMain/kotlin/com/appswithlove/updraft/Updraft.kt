@@ -161,7 +161,9 @@ object Updraft {
     fun checkForUpdate() = requireController().checkForUpdate()
 
     fun showFeedback() {
-        val screenshot = createScreenshotGrabber().capturePng()
+        val screenshot = runCatching { createScreenshotGrabber().capturePng() }
+            .onFailure { if (currentSettings?.shouldShowErrors() == true) println("Updraft: screenshot capture failed, opening feedback without one: $it") }
+            .getOrNull()
         requireController().onFeedbackTriggered(screenshot)
     }
 
