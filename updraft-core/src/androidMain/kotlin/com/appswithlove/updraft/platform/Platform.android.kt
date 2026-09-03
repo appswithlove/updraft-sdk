@@ -9,17 +9,21 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Build
 import android.os.Handler
-import android.os.HandlerThread
+import android.os.Looper
 import android.view.PixelCopy
 import android.view.Window
 import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import java.io.ByteArrayOutputStream
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 private class AndroidShakeDetector(private val onShake: () -> Unit) :
     ShakeDetector, SensorEventListener, DefaultLifecycleObserver {
@@ -75,55 +79,55 @@ private class AndroidShakeDetector(private val onShake: () -> Unit) :
 
 actual fun createShakeDetector(onShake: () -> Unit): ShakeDetector = AndroidShakeDetector(onShake)
 
+/**
+ * Reads the composited window content back via [PixelCopy]. Unlike [android.view.View.draw] into a
+ * software canvas, this renders hardware-backed content (Compose GraphicsLayers, hardware bitmaps).
+ * The copy is awaited without blocking the main thread; PNG encoding runs off the main thread.
+ */
 private class AndroidScreenshotGrabber : ScreenshotGrabber {
-    override fun capturePng(): ByteArray? {
+    override suspend fun capturePng(): ByteArray? {
         val activity = CurrentActivityManager.current ?: return null
         val window = activity.window ?: return null
         val view = window.decorView.rootView
         if (view.width == 0 || view.height == 0) return null
         val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
-        val captured = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            pixelCopy(window, bitmap)
-        } else {
-            runCatching { view.draw(Canvas(bitmap)) }.isSuccess
-        }
+        val captured = runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                withTimeoutOrNull(PIXEL_COPY_TIMEOUT_MS) { pixelCopy(window, bitmap) } == true
+            } else {
+                view.draw(Canvas(bitmap))
+                true
+            }
+        }.getOrDefault(false)
         if (!captured) {
             bitmap.recycle()
             return null
         }
-        return ByteArrayOutputStream().use { stream ->
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-            bitmap.recycle()
-            stream.toByteArray()
+        return withContext(Dispatchers.Default) {
+            ByteArrayOutputStream().use { stream ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                bitmap.recycle()
+                stream.toByteArray()
+            }
         }
     }
 
-    /**
-     * Copies the window's rendered content via [PixelCopy], which supports hardware-accelerated
-     * content (Compose GraphicsLayers, hardware bitmaps) that [android.view.View.draw] into a software
-     * canvas cannot render. Runs on the main thread, so the result callback must not be posted to the
-     * main looper while we block on it.
-     */
     @RequiresApi(Build.VERSION_CODES.N)
-    private fun pixelCopy(window: Window, bitmap: Bitmap): Boolean {
-        val thread = HandlerThread("updraft-pixelcopy").apply { start() }
-        return try {
-            val latch = CountDownLatch(1)
-            var success = false
-            PixelCopy.request(window, bitmap, { result ->
-                success = result == PixelCopy.SUCCESS
-                latch.countDown()
-            }, Handler(thread.looper))
-            latch.await(PIXEL_COPY_TIMEOUT_SECONDS, TimeUnit.SECONDS) && success
-        } catch (e: Exception) {
-            false
-        } finally {
-            thread.quitSafely()
+    private suspend fun pixelCopy(window: Window, bitmap: Bitmap): Boolean =
+        suspendCancellableCoroutine { continuation ->
+            val onResult: (Int) -> Unit = { result ->
+                if (continuation.isActive) continuation.resume(result == PixelCopy.SUCCESS)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                val request = PixelCopy.Request.Builder.ofWindow(window).setDestinationBitmap(bitmap).build()
+                PixelCopy.request(request, ContextCompat.getMainExecutor(window.context)) { onResult(it.status) }
+            } else {
+                PixelCopy.request(window, bitmap, onResult, Handler(Looper.getMainLooper()))
+            }
         }
-    }
 
     companion object {
-        private const val PIXEL_COPY_TIMEOUT_SECONDS = 2L
+        private const val PIXEL_COPY_TIMEOUT_MS = 2_000L
     }
 }
 

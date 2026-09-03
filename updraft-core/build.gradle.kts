@@ -48,6 +48,7 @@ kotlin {
             implementation(libs.turbine)
         }
         androidMain.dependencies {
+            implementation(libs.kotlinx.coroutines.android)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.startup)
             implementation(libs.lifecycle.process)

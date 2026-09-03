@@ -236,6 +236,18 @@ Updraft.navigationStackProvider = {
 
 Return screen names ordered root to top. Setting the provider to `null` restores the platform default. Updraft's own screens are always excluded. To send nothing at all, use `UpdraftSettings(sendNavigationStack = false)`.
 
+### Custom screenshot capture
+
+By default the SDK captures the current window when feedback is triggered (`PixelCopy` on Android 7+, `View.draw` on Android 6, the key window on iOS). Replace it when your app renders content the default cannot see, or to redact sensitive areas:
+
+```kotlin
+Updraft.screenshotGrabber = ScreenshotGrabber {
+    myRenderer.captureFrame()?.toPng()   // ByteArray?, or null to open feedback without a screenshot
+}
+```
+
+`capturePng` is a `suspend` function called on the main thread. Exceptions are caught and treated as "no screenshot"; a failing capture never crashes the host app. Set to `null` to restore the default.
+
 ### Logging
 
 `UpdraftSettings(logLevel = LogLevel.Debug)` prints requests and responses to the console. Default is `LogLevel.Error`.
@@ -250,7 +262,7 @@ Version 2.0.0 rebuilds the SDK on Kotlin Multiplatform. `updraft-sdk` stays a dr
 | `Settings.LOG_LEVEL_DEBUG` | `LogLevel.Debug` (also `Error`, `None`) |
 | `Updraft.initialize(this, settings)` + `Updraft.getInstance()?.start()` | `Updraft.start(settings)`, one call, no context argument |
 | `settings.isStoreRelease` | `UpdraftSettings(..., storeRelease = ...)` |
-| `ScreenshotProvider` | not supported yet, screenshots are captured automatically; a custom hook is planned |
+| `ScreenshotProvider` | `Updraft.screenshotGrabber = ScreenshotGrabber { ... }` (since 2.0.1, see Custom screenshot capture) |
 
 ## Local development
 
