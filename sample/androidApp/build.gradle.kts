@@ -58,6 +58,7 @@ dependencies {
     implementation(project(":sample:composeApp"))
     implementation(project(":updraft-sdk"))
     implementation(libs.androidx.activity.compose)
+    implementation("androidx.compose.foundation:foundation:${libs.versions.composeUi.get()}")
 }
 
 val updraftUploadUrl: String = findProperty("updraft_uploadUrl") as? String ?: ""

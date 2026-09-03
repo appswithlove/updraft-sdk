@@ -85,7 +85,7 @@ actual fun createShakeDetector(onShake: () -> Unit): ShakeDetector = IosShakeDet
 
 @OptIn(ExperimentalForeignApi::class)
 private class IosScreenshotGrabber : ScreenshotGrabber {
-    override fun capturePng(): ByteArray? {
+    override suspend fun capturePng(): ByteArray? {
         val window = keyWindow() ?: return null
         val bounds = window.bounds
         val renderer = UIGraphicsImageRenderer(bounds = bounds)
