@@ -7,11 +7,23 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.view.PixelCopy
+import android.view.Window
+import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import java.io.ByteArrayOutputStream
+import kotlin.coroutines.resume
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 private class AndroidShakeDetector(private val onShake: () -> Unit) :
     ShakeDetector, SensorEventListener, DefaultLifecycleObserver {
@@ -67,17 +79,55 @@ private class AndroidShakeDetector(private val onShake: () -> Unit) :
 
 actual fun createShakeDetector(onShake: () -> Unit): ShakeDetector = AndroidShakeDetector(onShake)
 
+/**
+ * Reads the composited window content back via [PixelCopy]. Unlike [android.view.View.draw] into a
+ * software canvas, this renders hardware-backed content (Compose GraphicsLayers, hardware bitmaps).
+ * The copy is awaited without blocking the main thread; PNG encoding runs off the main thread.
+ */
 private class AndroidScreenshotGrabber : ScreenshotGrabber {
-    override fun capturePng(): ByteArray? {
+    override suspend fun capturePng(): ByteArray? {
         val activity = CurrentActivityManager.current ?: return null
-        val view = activity.window.decorView.rootView
+        val window = activity.window ?: return null
+        val view = window.decorView.rootView
         if (view.width == 0 || view.height == 0) return null
         val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
-        view.draw(Canvas(bitmap))
-        val stream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-        bitmap.recycle()
-        return stream.toByteArray()
+        val captured = runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                withTimeoutOrNull(PIXEL_COPY_TIMEOUT_MS) { pixelCopy(window, bitmap) } == true
+            } else {
+                view.draw(Canvas(bitmap))
+                true
+            }
+        }.getOrDefault(false)
+        if (!captured) {
+            bitmap.recycle()
+            return null
+        }
+        return withContext(Dispatchers.Default) {
+            ByteArrayOutputStream().use { stream ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                bitmap.recycle()
+                stream.toByteArray()
+            }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.N)
+    private suspend fun pixelCopy(window: Window, bitmap: Bitmap): Boolean =
+        suspendCancellableCoroutine { continuation ->
+            val onResult: (Int) -> Unit = { result ->
+                if (continuation.isActive) continuation.resume(result == PixelCopy.SUCCESS)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                val request = PixelCopy.Request.Builder.ofWindow(window).setDestinationBitmap(bitmap).build()
+                PixelCopy.request(request, ContextCompat.getMainExecutor(window.context)) { onResult(it.status) }
+            } else {
+                PixelCopy.request(window, bitmap, onResult, Handler(Looper.getMainLooper()))
+            }
+        }
+
+    companion object {
+        private const val PIXEL_COPY_TIMEOUT_MS = 2_000L
     }
 }
 

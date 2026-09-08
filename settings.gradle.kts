@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "updraft-sdk"
-include(":sample:composeApp", ":updraft-sdk", ":updraft-core", ":updraft-ui-compose")
+include(":sample:composeApp", ":sample:androidApp", ":updraft-sdk", ":updraft-core", ":updraft-ui-compose")

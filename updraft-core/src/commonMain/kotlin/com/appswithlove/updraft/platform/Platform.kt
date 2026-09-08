@@ -10,8 +10,13 @@ interface ShakeDetector {
 
 expect fun createShakeDetector(onShake: () -> Unit): ShakeDetector
 
-interface ScreenshotGrabber {
-    fun capturePng(): ByteArray?
+/**
+ * Captures the current screen as PNG when feedback is triggered.
+ * Called on the main thread. Return null when no screenshot is available;
+ * the feedback UI then opens without one. Exceptions are caught by the SDK.
+ */
+fun interface ScreenshotGrabber {
+    suspend fun capturePng(): ByteArray?
 }
 
 expect fun createScreenshotGrabber(): ScreenshotGrabber

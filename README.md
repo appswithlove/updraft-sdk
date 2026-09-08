@@ -50,7 +50,7 @@ You always need:
 ```toml
 # libs.versions.toml
 [versions]
-updraft = "2.0.0"
+updraft = "2.0.1"
 
 [libraries]
 updraft-sdk = { module = "com.appswithlove.updraft:updraft-sdk", version.ref = "updraft" }
@@ -236,6 +236,18 @@ Updraft.navigationStackProvider = {
 
 Return screen names ordered root to top. Setting the provider to `null` restores the platform default. Updraft's own screens are always excluded. To send nothing at all, use `UpdraftSettings(sendNavigationStack = false)`.
 
+### Custom screenshot capture
+
+By default the SDK captures the current window when feedback is triggered (`PixelCopy` on Android 7+, `View.draw` on Android 6, the key window on iOS). Replace it when your app renders content the default cannot see, or to redact sensitive areas:
+
+```kotlin
+Updraft.screenshotGrabber = ScreenshotGrabber {
+    myRenderer.captureFrame()?.toPng()   // ByteArray?, or null to open feedback without a screenshot
+}
+```
+
+`capturePng` is a `suspend` function called on the main thread. Exceptions are caught and treated as "no screenshot"; a failing capture never crashes the host app. Set to `null` to restore the default.
+
 ### Logging
 
 `UpdraftSettings(logLevel = LogLevel.Debug)` prints requests and responses to the console. Default is `LogLevel.Error`.
@@ -250,15 +262,17 @@ Version 2.0.0 rebuilds the SDK on Kotlin Multiplatform. `updraft-sdk` stays a dr
 | `Settings.LOG_LEVEL_DEBUG` | `LogLevel.Debug` (also `Error`, `None`) |
 | `Updraft.initialize(this, settings)` + `Updraft.getInstance()?.start()` | `Updraft.start(settings)`, one call, no context argument |
 | `settings.isStoreRelease` | `UpdraftSettings(..., storeRelease = ...)` |
-| `ScreenshotProvider` | not supported yet, screenshots are captured automatically; a custom hook is planned |
+| `ScreenshotProvider` | `Updraft.screenshotGrabber = ScreenshotGrabber { ... }` (since 2.0.1, see Custom screenshot capture) |
 
 ## Local development
 
 Use the `sample` project for testing. `./gradlew publishToMavenLocal` installs the current version to Maven Local. Sample keys go into `local.properties` (`updraft.appKey.android`, `updraft.appKey.ios`, `updraft.sdkKey`).
 
+Before every release, run the Android sample on a device (API 26+), tap "Give feedback" or shake, and confirm the feedback sheet opens with a screenshot. The sample renders a hardware bitmap on purpose: it reproduces the screenshot crash that shipped in 1.1.0 and 2.0.0 (#25).
+
 ### Strings (Loco)
 
-UI strings live in `updraft-ui-compose/src/commonMain/composeResources/values*/strings.xml` (en, de) and are shared by both platforms. They are managed on [Loco](https://localise.biz). `./gradlew :updraft-ui-compose:updateLoco` re-fetches them and **overwrites local edits**, so change strings in Loco first, then pull. The task needs `updraft.locoApiKey=<key>` in `local.properties`. Plurals live in `plurals.xml`, which Loco does not touch.
+UI strings live in `updraft-ui-compose/src/commonMain/composeResources/values*/strings.xml` (en, de) and are shared by both platforms. They are managed on [Loco](https://localise.biz). `./gradlew :updraft-ui-compose:locoFetch` re-fetches them and **overwrites local edits**, so change strings in Loco first, then pull. `locoPush` pushes local strings to Loco and needs a full-access key. Both tasks need `locoApiKey=<key>` in `local.properties`. Plurals live in `plurals.xml`, which Loco does not touch.
 
 ## Release
 

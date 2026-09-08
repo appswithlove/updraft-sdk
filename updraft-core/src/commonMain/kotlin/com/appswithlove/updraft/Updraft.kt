@@ -6,6 +6,7 @@ import com.appswithlove.updraft.interactor.CheckFeedbackEnabledInteractor
 import com.appswithlove.updraft.interactor.CheckFeedbackResultModel
 import com.appswithlove.updraft.interactor.CheckUpdateInteractor
 import com.appswithlove.updraft.platform.KeyValueStore
+import com.appswithlove.updraft.platform.ScreenshotGrabber
 import com.appswithlove.updraft.platform.ShakeDetector
 import com.appswithlove.updraft.platform.createAppForegroundObserver
 import com.appswithlove.updraft.platform.createKeyValueStore
@@ -14,8 +15,10 @@ import com.appswithlove.updraft.platform.createShakeDetector
 import com.appswithlove.updraft.platform.currentAppInfo
 import com.appswithlove.updraft.platform.currentNavigationStack
 import com.appswithlove.updraft.platform.openUrl
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -117,6 +120,8 @@ object Updraft {
     private var controller: UpdraftController? = null
     private var currentSettings: UpdraftSettings? = null
     private var shakeDetector: ShakeDetector? = null
+    private val mainScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var feedbackJob: Job? = null
 
     val settings: UpdraftSettings
         get() = checkNotNull(currentSettings) { "Must call Updraft.start() first" }
@@ -132,6 +137,15 @@ object Updraft {
      * view controller chain on iOS.
      */
     var navigationStackProvider: (() -> List<String>)? = null
+
+    /**
+     * Optional hook to replace the SDK's screenshot capture. Called on the main
+     * thread when feedback is triggered. Return null to open feedback without a
+     * screenshot. When null, the SDK uses the platform default (PixelCopy of the
+     * current window on Android 7+, View.draw on Android 6, the key window on iOS). Exceptions are caught
+     * and treated as "no screenshot".
+     */
+    var screenshotGrabber: ScreenshotGrabber? = null
 
     private fun resolveNavigationStack(): String {
         if (currentSettings?.sendNavigationStack != true) return ""
@@ -160,9 +174,20 @@ object Updraft {
 
     fun checkForUpdate() = requireController().checkForUpdate()
 
+    /**
+     * Captures a screenshot and opens the feedback UI. Returns immediately; the
+     * capture completes asynchronously on the main thread without blocking it.
+     */
     fun showFeedback() {
-        val screenshot = createScreenshotGrabber().capturePng()
-        requireController().onFeedbackTriggered(screenshot)
+        val controller = requireController()
+        if (feedbackJob?.isActive == true) return
+        val grabber = screenshotGrabber ?: createScreenshotGrabber()
+        feedbackJob = mainScope.launch {
+            val screenshot = captureScreenshotOrNull(grabber) { message ->
+                if (currentSettings?.shouldShowErrors() == true) println("Updraft: $message")
+            }
+            controller.onFeedbackTriggered(screenshot)
+        }
     }
 
     fun sendFeedback(screenshotPng: ByteArray, type: FeedbackType, description: String, email: String): Flow<Double> =
@@ -187,3 +212,14 @@ object Updraft {
     private fun requireController(): UpdraftController =
         checkNotNull(controller) { "Must call Updraft.start() first" }
 }
+
+/** A failed screenshot must never crash the host app: feedback opens without one instead. */
+internal suspend fun captureScreenshotOrNull(grabber: ScreenshotGrabber, logError: (String) -> Unit): ByteArray? =
+    try {
+        grabber.capturePng()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        logError("screenshot capture failed, opening feedback without one: $e")
+        null
+    }

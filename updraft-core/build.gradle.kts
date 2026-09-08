@@ -3,16 +3,20 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.maven.publish)
 }
 
 kotlin {
-    androidTarget {
+    androidLibrary {
+        namespace = "com.appswithlove.updraft.core"
+        compileSdk = 36
+        minSdk = 23
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
         }
+        withHostTestBuilder {}
     }
 
     val xcf = XCFramework("UpdraftCore")
@@ -44,6 +48,7 @@ kotlin {
             implementation(libs.turbine)
         }
         androidMain.dependencies {
+            implementation(libs.kotlinx.coroutines.android)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.startup)
             implementation(libs.lifecycle.process)
@@ -52,18 +57,6 @@ kotlin {
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }
-    }
-}
-
-android {
-    namespace = "com.appswithlove.updraft.core"
-    compileSdk = 36
-    defaultConfig {
-        minSdk = 23
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
     }
 }
 
