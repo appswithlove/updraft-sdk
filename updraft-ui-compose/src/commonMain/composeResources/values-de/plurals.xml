@@ -2,23 +2,23 @@
 <!-- Not managed by Loco: updateLoco only rewrites strings.xml. -->
 <resources>
     <plurals name="updraft_relative_hoursAgo">
-        <item quantity="one">vor %d Stunde</item>
-        <item quantity="other">vor %d Stunden</item>
+        <item quantity="one">vor %1$d Stunde</item>
+        <item quantity="other">vor %1$d Stunden</item>
     </plurals>
     <plurals name="updraft_relative_daysAgo">
-        <item quantity="one">vor %d Tag</item>
-        <item quantity="other">vor %d Tagen</item>
+        <item quantity="one">vor %1$d Tag</item>
+        <item quantity="other">vor %1$d Tagen</item>
     </plurals>
     <plurals name="updraft_relative_weeksAgo">
-        <item quantity="one">vor %d Woche</item>
-        <item quantity="other">vor %d Wochen</item>
+        <item quantity="one">vor %1$d Woche</item>
+        <item quantity="other">vor %1$d Wochen</item>
     </plurals>
     <plurals name="updraft_relative_monthsAgo">
-        <item quantity="one">vor %d Monat</item>
-        <item quantity="other">vor %d Monaten</item>
+        <item quantity="one">vor %1$d Monat</item>
+        <item quantity="other">vor %1$d Monaten</item>
     </plurals>
     <plurals name="updraft_relative_yearsAgo">
-        <item quantity="one">vor %d Jahr</item>
-        <item quantity="other">vor %d Jahren</item>
+        <item quantity="one">vor %1$d Jahr</item>
+        <item quantity="other">vor %1$d Jahren</item>
     </plurals>
 </resources>

@@ -7,6 +7,7 @@ import com.appswithlove.updraft.api.response.GetLastVersionResponse
 import com.appswithlove.updraft.platform.KeyValueStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -73,6 +74,67 @@ class UpdraftControllerTest {
             controller.onFeedbackTriggered(screenshotPng = byteArrayOf(1))
             assertIs<UpdraftEvent.FeedbackRequested>(awaitItem())
             assertEquals(1, controller.takePendingScreenshot()!!.size)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+}
+
+class UpdraftControllerLateSubscriberTest {
+
+    private val settings = UpdraftSettings(appKey = "a", sdkKey = "s", showFeedbackAlert = false)
+
+    @Test
+    fun updateAvailable_emittedBeforeAnySubscriber_isDeliveredToFirstSubscriber() = runTest {
+        val api = FakeApi().apply {
+            check = CheckLastVersionResponse(isNewVersion = true, isAutoupdateEnabled = true, version = "7")
+            last = GetLastVersionResponse(updateUrl = "https://u")
+        }
+        val store = FakeStore().apply { map["is_feedback_enabled_property"] = true }
+        val controller = UpdraftController(settings, api, store, this)
+
+        controller.onForeground()
+        advanceUntilIdle()
+
+        controller.events.test {
+            val update = assertIs<UpdraftEvent.UpdateAvailable>(awaitItem())
+            assertEquals("https://u", update.url)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun bufferedEvents_areDeliveredOnce() = runTest {
+        val api = FakeApi().apply {
+            check = CheckLastVersionResponse(isNewVersion = true, isAutoupdateEnabled = true)
+            last = GetLastVersionResponse(updateUrl = "https://u")
+        }
+        val store = FakeStore().apply { map["is_feedback_enabled_property"] = true }
+        val controller = UpdraftController(settings, api, store, this)
+
+        controller.onForeground()
+        advanceUntilIdle()
+
+        controller.events.test {
+            assertIs<UpdraftEvent.UpdateAvailable>(awaitItem())
+            expectNoEvents()
+            cancel()
+        }
+        controller.events.test {
+            expectNoEvents()
+            cancel()
+        }
+    }
+
+    @Test
+    fun updateCheckFailure_emitsErrorEvent() = runTest {
+        val api = object : UpdraftApiContract by FakeApi() {
+            override suspend fun checkLastVersion(): CheckLastVersionResponse = throw IllegalStateException("boom")
+        }
+        val controller = UpdraftController(settings, api, FakeStore(), this)
+        controller.events.test {
+            controller.checkForUpdate()
+            val error = assertIs<UpdraftEvent.Error>(awaitItem())
+            assertEquals("boom", error.cause.message)
             cancelAndIgnoreRemainingEvents()
         }
     }
