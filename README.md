@@ -26,11 +26,11 @@ Updraft is built by [Apps with love](https://appswithlove.com/) and [Moqod](http
 | Your app | Required Kotlin |
 | --- | --- |
 | Java only Android app | none |
-| Kotlin Android app | 2.1 or newer |
-| KMP / Compose Multiplatform app | 2.2 or newer |
+| Kotlin Android app | 2.2 or newer |
+| KMP / Compose Multiplatform app | 2.3 or newer |
 | Swift app via XCFramework | none |
 
-With an older Kotlin version the build fails at compile time (never at runtime), for example: `Module 'updraft-core' was compiled with an incompatible version of Kotlin`. Fix: upgrade Kotlin, or stay on Updraft SDK 1.x until you can.
+With an older Kotlin version the build fails at compile time (never at runtime), for example: `Module 'updraft-core' was compiled with an incompatible version of Kotlin`. Fix: upgrade Kotlin, or stay on Updraft SDK 2.0.x until you can.
 
 ## 1. Setup for all platforms
 
@@ -50,7 +50,7 @@ You always need:
 ```toml
 # libs.versions.toml
 [versions]
-updraft = "2.0.1"
+updraft = "3.0.0"
 
 [libraries]
 updraft-sdk = { module = "com.appswithlove.updraft:updraft-sdk", version.ref = "updraft" }
