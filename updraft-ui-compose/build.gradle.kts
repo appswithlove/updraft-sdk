@@ -20,6 +20,17 @@ Loco {
     }
 }
 
+// Loco's Android export escapes apostrophes as \' and Compose resources do not unescape them,
+// so the dialog would literally show "You\'re". Strip the escape after every fetch.
+tasks.named("locoFetch") {
+    val stringsFiles = fileTree(layout.projectDirectory.dir("src/commonMain/composeResources")) {
+        include("values*/strings.xml")
+    }
+    doLast {
+        stringsFiles.forEach { file -> file.writeText(file.readText().replace("\\'", "'")) }
+    }
+}
+
 kotlin {
     androidLibrary {
         namespace = "com.appswithlove.updraft.ui"
