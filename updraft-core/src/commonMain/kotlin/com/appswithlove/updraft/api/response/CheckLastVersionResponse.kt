@@ -9,6 +9,6 @@ data class CheckLastVersionResponse(
     @SerialName("whats_new") val whatsNew: String? = null,
     @SerialName("version") val version: String? = null,
     @SerialName("your_version") val yourVersion: String? = null,
-    @SerialName("is_new_version") val isNewVersion: Boolean,
-    @SerialName("is_autoupdate_enabled") val isAutoupdateEnabled: Boolean,
+    @SerialName("is_new_version") val isNewVersion: Boolean = false,
+    @SerialName("is_autoupdate_enabled") val isAutoupdateEnabled: Boolean = false,
 )

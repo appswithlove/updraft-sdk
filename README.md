@@ -50,7 +50,7 @@ You always need:
 ```toml
 # libs.versions.toml
 [versions]
-updraft = "2.0.1"
+updraft = "2.0.2"
 
 [libraries]
 updraft-sdk = { module = "com.appswithlove.updraft:updraft-sdk", version.ref = "updraft" }
@@ -272,7 +272,7 @@ Before every release, run the Android sample on a device (API 26+), tap "Give fe
 
 ### Strings (Loco)
 
-UI strings live in `updraft-ui-compose/src/commonMain/composeResources/values*/strings.xml` (en, de) and are shared by both platforms. They are managed on [Loco](https://localise.biz). `./gradlew :updraft-ui-compose:locoFetch` re-fetches them and **overwrites local edits**, so change strings in Loco first, then pull. `locoPush` pushes local strings to Loco and needs a full-access key. Both tasks need `locoApiKey=<key>` in `local.properties`. Plurals live in `plurals.xml`, which Loco does not touch.
+UI strings live in `updraft-ui-compose/src/commonMain/composeResources/values*/strings.xml` (en, de) and are shared by both platforms. They are managed on [Loco](https://localise.biz). `./gradlew :updraft-ui-compose:locoFetch` re-fetches them and **overwrites local edits**, so change strings in Loco first, then pull. `locoFetch` also strips the `\'` escaping Loco's Android export adds, because Compose resources would render it literally. `locoPush` pushes local strings to Loco and needs a full-access key. Both tasks need `locoApiKey=<key>` in `local.properties`. Plurals live in `plurals.xml`, which Loco does not touch.
 
 ## Release
 
