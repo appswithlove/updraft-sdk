@@ -27,11 +27,11 @@
     <string name="updraft_global_error">Error</string>
     <string name="updraft_relative_justNow">just now</string>
     <string name="updraft_updateAvailable_description">You will be redirected to download the new version of the app</string>
-    <string name="updraft_updateAvailable_descriptionFull">Released %1$s. You\'re currently on version %2$s.</string>
+    <string name="updraft_updateAvailable_descriptionFull">Released %1$s. You're currently on version %2$s.</string>
     <string name="updraft_updateAvailable_laterButton">Later</string>
     <string name="updraft_updateAvailable_openButton">Open</string>
     <string name="updraft_updateAvailable_releasedRelative">Released %1$s.</string>
     <string name="updraft_updateAvailable_title">New version available</string>
     <string name="updraft_updateAvailable_titleWithVersion">New version (%1$s) available</string>
-    <string name="updraft_updateAvailable_yourVersion">You\'re currently on version %1$s.</string>
+    <string name="updraft_updateAvailable_yourVersion">You're currently on version %1$s.</string>
 </resources>

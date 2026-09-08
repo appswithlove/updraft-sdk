@@ -20,9 +20,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.launch
 
 internal class UpdraftController(
@@ -36,7 +39,32 @@ internal class UpdraftController(
     private val checkFeedbackInteractor = CheckFeedbackEnabledInteractor(api, store)
 
     private val _events = MutableSharedFlow<UpdraftEvent>(extraBufferCapacity = 16)
-    val events: SharedFlow<UpdraftEvent> = _events
+    private val pendingEvents = Channel<UpdraftEvent>(capacity = 32, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
+    /**
+     * Events published while nobody is subscribed yet (typically during a slow cold start, before the
+     * platform UI host starts collecting) are buffered and handed to the first subscriber. A plain
+     * SharedFlow without replay would drop them.
+     */
+    val events: SharedFlow<UpdraftEvent> = _events.onSubscription { drainPending { emit(it) } }
+
+    // Send first, then check: a subscriber that appears between the two steps drains the channel
+    // itself in onSubscription, so the event is delivered exactly once either way.
+    private fun publish(event: UpdraftEvent) {
+        pendingEvents.trySend(event)
+        if (_events.subscriptionCount.value > 0) drainPending { _events.tryEmit(it) }
+    }
+
+    private inline fun drainPending(deliver: (UpdraftEvent) -> Unit) {
+        while (true) {
+            val event = pendingEvents.tryReceive().getOrNull() ?: break
+            deliver(event)
+        }
+    }
+
+    private fun logError(message: String, cause: Throwable) {
+        if (settings.shouldShowErrors()) println("Updraft: $message: $cause")
+    }
 
     private var updateAlertShown = false
     private var feedbackHintShown = false
@@ -48,7 +76,7 @@ internal class UpdraftController(
     fun onForeground() {
         if (settings.showFeedbackAlert && settings.feedbackEnabled && !feedbackHintShown) {
             feedbackHintShown = true
-            _events.tryEmit(UpdraftEvent.ShowFeedbackHint)
+            publish(UpdraftEvent.ShowFeedbackHint)
         }
         checkForUpdate()
         checkFeedbackEnabled()
@@ -61,12 +89,13 @@ internal class UpdraftController(
                 val url = result.url
                 if (result.showAlert && url != null && !updateAlertShown) {
                     updateAlertShown = true
-                    _events.tryEmit(
+                    publish(
                         UpdraftEvent.UpdateAvailable(url, result.version, result.yourVersion, result.createAt),
                     )
                 }
             } catch (t: Throwable) {
-                _events.tryEmit(UpdraftEvent.Error(t))
+                logError("update check failed", t)
+                publish(UpdraftEvent.Error(t))
             }
         }
     }
@@ -78,16 +107,17 @@ internal class UpdraftController(
                 if (result.showAlert) {
                     when (result.alertType) {
                         CheckFeedbackResultModel.AlertType.FeedbackDisabled ->
-                            _events.tryEmit(UpdraftEvent.FeedbackDisabled)
+                            publish(UpdraftEvent.FeedbackDisabled)
                         CheckFeedbackResultModel.AlertType.HowToGiveFeedback ->
-                            if (settings.showFeedbackAlert) _events.tryEmit(UpdraftEvent.ShowFeedbackHint)
+                            if (settings.showFeedbackAlert) publish(UpdraftEvent.ShowFeedbackHint)
                     }
                 }
                 if (!result.isFeedbackEnabled) {
-                    _events.tryEmit(UpdraftEvent.CloseFeedback)
+                    publish(UpdraftEvent.CloseFeedback)
                 }
             } catch (t: Throwable) {
-                _events.tryEmit(UpdraftEvent.Error(t))
+                logError("feedback-enabled check failed", t)
+                publish(UpdraftEvent.Error(t))
             }
         }
     }
@@ -99,7 +129,7 @@ internal class UpdraftController(
         if (presenter != null) {
             presenter.presentFeedback(screenshotPng)
         } else {
-            _events.tryEmit(UpdraftEvent.FeedbackRequested)
+            publish(UpdraftEvent.FeedbackRequested)
         }
     }
 
@@ -152,6 +182,10 @@ object Updraft {
         return navigationStackProvider?.invoke()?.joinToString(", ") ?: currentNavigationStack()
     }
 
+    /**
+     * Initializes the SDK. With [UpdraftSettings.storeRelease] set, only the manual API stays
+     * active: no shake-to-feedback and no automatic update checks on foreground.
+     */
     fun start(settings: UpdraftSettings) {
         if (controller != null) return
         currentSettings = settings
@@ -160,6 +194,10 @@ object Updraft {
         val store = createKeyValueStore(CheckFeedbackEnabledInteractor.STORE_NAME)
         val newController = UpdraftController(settings, api, store, scope, ::resolveNavigationStack)
         controller = newController
+
+        // Store builds: no shake detector and no automatic update checks. Updraft.events stays
+        // subscribable so platform hosts that auto-wire keep working.
+        if (settings.storeRelease) return
 
         if (settings.feedbackEnabled) {
             val detector = createShakeDetector { showFeedback() }
