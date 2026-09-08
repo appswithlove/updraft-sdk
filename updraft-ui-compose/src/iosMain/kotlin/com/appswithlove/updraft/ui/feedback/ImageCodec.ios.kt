@@ -13,6 +13,7 @@ import org.jetbrains.skia.PaintMode
 import org.jetbrains.skia.PaintStrokeCap
 import org.jetbrains.skia.PaintStrokeJoin
 import org.jetbrains.skia.Path
+import org.jetbrains.skia.PathBuilder
 import org.jetbrains.skia.Surface
 
 actual fun decodePng(bytes: ByteArray): ImageBitmap =
@@ -33,9 +34,10 @@ actual fun renderAnnotated(base: ByteArray, paths: List<DrawnPath>, canvasSize: 
             isAntiAlias = true
         }
         val mappedPoints = drawn.points.map { mapToBitmapSpace(it, canvasSize, baseImage.width, baseImage.height) }
-        val path = Path()
-        mappedPoints.firstOrNull()?.let { path.moveTo(it.x, it.y) }
-        mappedPoints.drop(1).forEach { path.lineTo(it.x, it.y) }
+        val path: Path = PathBuilder().apply {
+            mappedPoints.firstOrNull()?.let { moveTo(it.x, it.y) }
+            mappedPoints.drop(1).forEach { lineTo(it.x, it.y) }
+        }.detach()
         canvas.drawPath(path, paint)
     }
     return surface.makeImageSnapshot().encodeToData(EncodedImageFormat.PNG)!!.bytes
