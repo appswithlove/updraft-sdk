@@ -15,8 +15,8 @@ class UpdraftOverlayActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val event = pendingEvent
-        pendingEvent = null
+        // A recreated instance (e.g. rotation) must not consume an event queued for a new overlay.
+        val event = if (savedInstanceState == null) pendingEvents.removeFirstOrNull() else null
         if (event == null) {
             finish()
             return
@@ -36,10 +36,12 @@ class UpdraftOverlayActivity : ComponentActivity() {
     }
 
     companion object {
-        private var pendingEvent: UpdraftEvent? = null
+        // Main-thread only. A queue, not a single slot: several events can arrive within one
+        // activity-start window (hint, update, feedback state), each getting its own overlay.
+        private val pendingEvents = ArrayDeque<UpdraftEvent>()
 
         fun launch(context: Context, event: UpdraftEvent) {
-            pendingEvent = event
+            pendingEvents.addLast(event)
             context.startActivity(
                 Intent(context, UpdraftOverlayActivity::class.java)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
